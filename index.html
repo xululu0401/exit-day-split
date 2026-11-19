@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>卖公司那天的分钱单</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; background: #ecebe6; color: #22231f; line-height: 1.6; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 20px 14px 40px; }
+  h1 { font-size: 25px; letter-spacing: 1px; }
+  .lead { color: #5d5e57; font-size: 14px; margin: 4px 0 14px; }
+  .card { background: #fff; border-radius: 8px; padding: 14px; border: 1px solid #dcdbd3; margin-bottom: 14px; min-width: 0; }
+  .card h2 { font-size: 15px; color: #5d5e57; font-weight: 600; margin-bottom: 8px; }
+  input, select { font: inherit; font-size: 14px; padding: 4px 6px; border: 1px solid #c8c7bd; border-radius: 5px; width: 100%; min-width: 0; background: #fcfcfa; }
+  .bad { border-color: #b23a2b !important; background: #fff0ec !important; }
+  label { font-size: 12px; color: #6f7068; display: block; }
+  button { font: inherit; font-size: 13px; padding: 6px 11px; border-radius: 5px; border: 1px solid #2f5d50; background: #2f5d50; color: #fff; cursor: pointer; }
+  button.ghost { background: #fff; color: #2f5d50; }
+  button.x { padding: 2px 8px; background: #fff; color: #8a3a2c; border-color: #d6b3ab; }
+  .top { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 12px; }
+  @media (max-width: 640px) { .top { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+  .row { display: grid; grid-template-columns: 1.2fr .9fr .9fr .9fr .7fr .6fr 1.1fr .7fr auto; gap: 6px; align-items: end; padding: 8px 0; border-top: 1px dashed #dcdbd3; }
+  .row.c .p-only { visibility: hidden; }
+  .row .cap-f { visibility: hidden; } .row.cap .cap-f { visibility: visible; }
+  @media (max-width: 760px) {
+    .row { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .row.c .p-only { display: none; }
+    .row .cap-f { display: none; } .row.cap .cap-f { display: block; }
+  }
+  .presets, .rowbtns { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+  #error { display: none; background: #fff0ec; border: 1px solid #e0b2a7; color: #8a2a1b; border-radius: 8px; padding: 10px 12px; margin-bottom: 14px; overflow-wrap: anywhere; }
+  /* 分钱单：像一张票据 */
+  .slip { background: #fffdf6; border: 1px solid #d9d2bd; border-radius: 4px; padding: 16px 18px; position: relative; font-variant-numeric: tabular-nums; }
+  .slip::before, .slip::after { content: ""; position: absolute; left: 0; right: 0; height: 8px; background: radial-gradient(circle at 6px -2px, #ecebe6 6px, transparent 6.5px) repeat-x; background-size: 12px 8px; }
+  .slip::before { top: -1px; } .slip::after { bottom: -1px; transform: scaleY(-1); }
+  .slip .hd { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 13px; color: #6f6a58; border-bottom: 1px dashed #cfc7ad; padding-bottom: 8px; }
+  #summary { font-size: 20px; font-weight: 700; color: #2f5d50; margin: 10px 0 6px; overflow-wrap: anywhere; }
+  ol.steps { margin: 6px 0 10px 20px; font-size: 14px; } ol.steps li { margin: 3px 0; overflow-wrap: anywhere; }
+  .tw { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 6px 6px; border-top: 1px dashed #e0d9c3; text-align: right; white-space: nowrap; }
+  th:first-child, td:first-child, th:nth-child(2), td:nth-child(2) { text-align: left; }
+  thead th { color: #6f6a58; font-weight: 600; border-top: none; font-size: 12px; }
+  tr.focus td { font-weight: 700; color: #2f5d50; }
+  tfoot td { border-top: 2px solid #cfc7ad; font-weight: 700; }
+  td.less { color: #b23a2b; } td.more { color: #2f6b8a; }
+  @media (max-width: 640px) {
+    .tw table, .tw thead, .tw tbody, .tw tfoot, .tw tr, .tw td { display: block; }
+    .tw thead { display: none; }
+    .tw tr { border-top: 1px dashed #e0d9c3; padding: 6px 0; }
+    .tw td { border: none; padding: 1px 0; text-align: left; white-space: normal; overflow-wrap: anywhere; }
+    .tw td::before { content: attr(data-l) "："; color: #8a8572; font-weight: 400; }
+    .tw td:first-child::before { content: ""; }
+  }
+  #facts { margin: 4px 0 0 18px; font-size: 14px; color: #3b3c36; } #facts li { margin: 3px 0; overflow-wrap: anywhere; }
+  #chart { width: 100%; height: auto; display: block; }
+  .legend { font-size: 12px; color: #5d5e57; display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+  .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; vertical-align: -2px; margin-right: 3px; }
+  .sugs { list-style: none; }
+  .sugs li { display: flex; gap: 10px; align-items: flex-start; justify-content: space-between; padding: 8px 0; border-top: 1px solid #ecebe6; font-size: 14px; }
+  .sugs li:first-child { border-top: none; } .sugs li span { overflow-wrap: anywhere; min-width: 0; } .sugs li button { flex: none; }
+  .dl { display: flex; gap: 6px; flex-wrap: wrap; }
+  .rules { font-size: 13px; color: #3b3c36; } .rules p { margin: 4px 0; }
+  .note { font-size: 12px; color: #7f8077; margin-top: 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>卖公司那天的分钱单</h1>
+  <p class="lead">公司卖了 2 亿，你占 36%，到手却可能只有一成多：投资人的优先款要先拿、有的还能再按股分一次，有的会放弃优先转成普通股。把股东和每轮条款填进来，它按顺序开一张分钱单，写清谁先拿、拿多少、为什么，画出卖价从 0 涨上去时每人拿到的钱，再算你想拿到某个数卖价至少要多少。</p>
+
+  <div class="card">
+    <h2>卖多少、看谁</h2>
+    <div class="top">
+      <div><label for="exit">卖价（万元，可带千分位）</label><input id="exit" inputmode="decimal"></div>
+      <div><label for="focus">站在谁的角度看</label><select id="focus"></select></div>
+      <div><label for="target">他想拿到多少（万元，可空）</label><input id="target" inputmode="decimal"></div>
+    </div>
+    <div class="presets" id="presets"></div>
+  </div>
+
+  <div class="card">
+    <h2>股东与条款（优先股：投了多少 × 倍数 = 优先款；顺位数字大的先拿）</h2>
+    <div id="rows"></div>
+    <div class="rowbtns"><button class="ghost" id="addC">＋ 普通股东</button><button class="ghost" id="addP">＋ 一轮优先股</button></div>
+  </div>
+
+  <div id="error"></div>
+
+  <div id="out" style="display:none;">
+    <div class="card">
+      <div class="slip">
+        <div class="hd"><span>分钱单</span><span id="slipMeta"></span></div>
+        <div id="summary"></div>
+        <ol class="steps" id="steps"></ol>
+        <div class="tw"><table id="tbl"></table></div>
+      </div>
+      <ul id="facts"></ul>
+    </div>
+    <div class="card">
+      <h2>卖价从 0 涨上去，每人拿多少</h2>
+      <svg id="chart" viewBox="0 0 900 340" role="img" aria-label="卖价与每人到手的堆叠图"></svg>
+      <div class="legend" id="legend"></div>
+      <p class="note">横轴是卖价，竖着叠起来的是每人到手，叠满正好等于卖价；黑竖线是现在填的卖价，虚线是谁改主意（转股或改回优先）的那个价。</p>
+    </div>
+    <div class="card" id="sugCard">
+      <h2>换个条件</h2>
+      <ul class="sugs" id="sugs"></ul>
+      <p class="note">每条只改一处，按改完之后重算的结果写；点「照这个改」会填回上面。</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>导出与保存</h2>
+    <div class="dl">
+      <button id="dlPNG">分钱单 PNG</button>
+      <button class="ghost" id="dlCSV">CSV</button>
+      <button class="ghost" id="dlMD">Markdown</button>
+      <button class="ghost" id="dlJSON">JSON 备份</button>
+      <button class="ghost" id="reset">恢复默认例子</button>
+    </div>
+    <p class="note">填的内容自动保存在这台设备的浏览器里，刷新后还在；不上传、不联网。</p>
+  </div>
+
+  <div class="card rules">
+    <h2>怎么算的、算不了什么</h2>
+    <p><b>优先款</b> = 这一轮投了多少 × 优先倍数。不转股的各轮按顺位从大到小先拿；同一顺位钱不够时按优先款金额同比例分。</p>
+    <p><b>剩下的钱</b>按股数分给：普通股东、转成普通股的轮次、以及「参与」的轮次。「参与封顶 c 倍」= 这一轮连优先款在内一共最多拿投资额的 c 倍，超出的让给其他人再按股分。</p>
+    <p><b>转还是不转</b>：每轮优先股都可以放弃优先款、按 1:1 转成普通股。从「都不转」开始，逐轮看「改主意能不能多拿」，改到没有人想改为止。这是常见的简化算法，不处理强制转股、拖售、反稀释调整后的转股比例、可转债、未行权期权、税费和交易费用。</p>
+    <p>默认例子的股东和数字都是虚构的，不对应任何真实公司；不是法律或投资意见，真实分配以合同条款为准。</p>
+  </div>
+</div>
+
+  <script>
+/* 卖公司那天的分钱单 · 计算核心（无 DOM，可在 node 里 require）
+ * 公司被整体卖掉（或清算）时，卖价 E 怎么在普通股和各轮优先股之间分。
+ *
+ * 模型（全部金额单位：万元）：
+ *   普通股行：只有股数。
+ *   优先股行：股数（按 1:1 可转成普通股）、投了多少 I、优先倍数 m、参与方式（不参与 / 参与 / 参与封顶 c 倍）、顺位 rank（数字大的先拿，相同顺位按优先款金额同比例分）。
+ *   每轮优先股二选一：拿优先款（m×I，参与的还能再按股分剩下的），或者放弃优先、转成普通股按股分。
+ *   给定一组「谁转谁不转」：
+ *     ① 不转的按顺位从高到低拿优先款，同顺位不够时按优先款金额同比例分；
+ *     ② 剩下的钱 R 按股分给：普通股 + 已转的 + 不转但「参与」的；「参与封顶」的总拿到（优先款+分到的）不超过 c×I，超出部分让给其余人再按股分（逐轮注水）。
+ *   谁转谁不转：从「都不转」开始，按行的顺序逐个看，转了严格多拿就转、不转严格多拿就改回，直到没有人想改（最多 60 圈）。
+ *   这是一种常见的简化，结果是「没有哪一轮自己改主意能多拿」的状态；真实条款（强制转换、拖售、优先清算的其他写法）以合同为准。
+ */
+(function (root) {
+  'use strict';
+  const MAXROWS = 10, MAXPREF = 6, MAXE = 1e8, EPS = 1e-9;
+
+  function bad(field, message) { const e = new Error(message); e.field = field; throw e; }
+  function num(s) {
+    const t = String(s == null ? '' : s).replace(/[,，\s]/g, '');
+    if (!/^\d+(\.\d+)?$/.test(t)) return NaN;
+    return Number(t);
+  }
+  /* 先去浮点尾差，再四舍五入 */
+  function round(x, d) { const p = Math.pow(10, d); return Math.round(Number((x * p).toPrecision(12))) / p; }
+  function fmt(x, d) {
+    const r = round(x, d);
+    const neg = r < 0;
+    let s = Math.abs(r).toFixed(d);
+    if (d > 0) s = s.replace(/\.?0+$/, '');
+    const parts = s.split('.');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return (neg ? '-' : '') + parts.join('.');
+  }
+  /* 金额（万元）：先舍入到 0.01 万，再判是否进到「亿」档 */
+  function wan(x) {
+    const r = round(x, 2);
+    if (Math.abs(r) >= 10000) return fmt(r / 10000, 2) + ' 亿元';
+    return fmt(r, 2) + ' 万元';
+  }
+  function pc(x) { return fmt(x * 100, 1) + '%'; }
+
+  /* ── 解析与校验 ── */
+  function parse(inp) {
+    const o = inp || {};
+    const E = num(o.exit);
+    if (!isFinite(E)) bad('exit', '卖价要写成不小于 0 的数字（单位万元，可以带千分位）');
+    if (E > MAXE) bad('exit', '卖价太大了（上限 1 万亿元 = 100,000,000 万元）');
+    const rowsIn = Array.isArray(o.rows) ? o.rows : [];
+    if (!rowsIn.length) bad('rows', '至少要有一行股东');
+    if (rowsIn.length > MAXROWS) bad('rows', '最多 ' + MAXROWS + ' 行');
+    const names = {};
+    const rows = rowsIn.map(function (r, i) {
+      const at = '第 ' + (i + 1) + ' 行';
+      const f = function (k) { return 'r' + i + '.' + k; };
+      const name = String(r.name == null ? '' : r.name).trim();
+      if (!name) bad(f('name'), at + '还没写名字');
+      if (name.length > 16) bad(f('name'), at + '的名字太长（最多 16 个字）');
+      if (names[name]) bad(f('name'), at + '的名字「' + name + '」和前面重了');
+      names[name] = 1;
+      const kind = r.kind === 'p' ? 'p' : 'c';
+      const shares = num(r.shares);
+      if (!isFinite(shares) || shares <= 0) bad(f('shares'), at + '「' + name + '」的股数要大于 0');
+      if (shares > 1e12) bad(f('shares'), at + '的股数太大');
+      const row = { i: i, name: name, kind: kind, shares: shares };
+      if (kind === 'p') {
+        const inv = num(r.inv), m = num(r.mult), rank = num(r.rank);
+        if (!isFinite(inv)) bad(f('inv'), at + '「' + name + '」投了多少要写成不小于 0 的数字（万元）');
+        if (inv > MAXE) bad(f('inv'), at + '的投资额太大');
+        if (!isFinite(m) || m > 10) bad(f('mult'), at + '「' + name + '」的优先倍数要在 0 到 10 之间');
+        if (!isFinite(rank) || rank < 1 || rank > 9 || Math.floor(rank) !== rank) bad(f('rank'), at + '「' + name + '」的顺位要是 1 到 9 的整数（大的先拿）');
+        const part = r.part === 'full' ? 'full' : r.part === 'cap' ? 'cap' : 'none';
+        let cap = null;
+        if (part === 'cap') {
+          cap = num(r.cap);
+          if (!isFinite(cap) || cap > 100) bad(f('cap'), at + '「' + name + '」的封顶倍数要写成数字');
+          if (cap < m) bad(f('cap'), at + '「' + name + '」的封顶 ' + fmt(cap, 2) + ' 倍比优先倍数 ' + fmt(m, 2) + ' 倍还小，封顶指的是连优先款在内一共最多拿几倍');
+        }
+        row.inv = inv; row.mult = m; row.rank = rank; row.part = part; row.cap = cap;
+        row.pref = inv * m;
+      }
+      return row;
+    });
+    const nPref = rows.filter(function (r) { return r.kind === 'p'; }).length;
+    if (nPref > MAXPREF) bad('rows', '优先股最多 ' + MAXPREF + ' 轮（现在 ' + nPref + ' 轮）');
+    let focus = String(o.focus == null ? '' : o.focus).trim();
+    if (!names[focus]) focus = rows[0].name;
+    const ts = String(o.target == null ? '' : o.target).trim();
+    let target = null;
+    if (ts !== '') {
+      target = num(ts);
+      if (!isFinite(target) || target <= 0) bad('target', '想拿到多少要写成大于 0 的数字（万元），不想算就留空');
+      if (target > MAXE) bad('target', '想拿到的金额太大');
+    }
+    return { E: E, rows: rows, focus: focus, target: target };
+  }
+
+  /* ── 给定「谁转」，算每行拿多少 ── */
+  function payout(rows, E, conv) {
+    const n = rows.length;
+    const pay = new Array(n).fill(0), prefPaid = new Array(n).fill(0), partPaid = new Array(n).fill(0);
+    let R = E;
+    /* ① 优先款按顺位 */
+    const ranks = Array.from(new Set(rows.filter(function (r) { return r.kind === 'p' && !conv[r.i]; }).map(function (r) { return r.rank; }))).sort(function (a, b) { return b - a; });
+    const tiers = [];
+    ranks.forEach(function (k) {
+      const grp = rows.filter(function (r) { return r.kind === 'p' && !conv[r.i] && r.rank === k; });
+      const need = grp.reduce(function (a, r) { return a + r.pref; }, 0);
+      const give = Math.min(need, R);
+      grp.forEach(function (r) { const g = need > 0 ? give * r.pref / need : 0; prefPaid[r.i] = g; });
+      tiers.push({ rank: k, names: grp.map(function (r) { return r.name; }), need: need, paid: give, full: give >= need - EPS });
+      R -= give;
+    });
+    if (R < 0) R = 0;
+    const rest = R;
+    /* ② 剩下的按股分（封顶的注水） */
+    let parts = rows.filter(function (r) { return r.kind === 'c' || conv[r.i] || r.part !== 'none'; }).map(function (r) { return r.i; });
+    let capped = [];
+    for (let guard = 0; guard < 20 && parts.length && R > EPS; guard++) {
+      const S = parts.reduce(function (a, i) { return a + rows[i].shares; }, 0);
+      const pps = R / S;
+      const over = parts.filter(function (i) {
+        const r = rows[i];
+        return r.kind === 'p' && !conv[i] && r.part === 'cap' && prefPaid[i] + pps * r.shares > r.cap * r.inv + EPS;
+      });
+      if (!over.length) { parts.forEach(function (i) { partPaid[i] += pps * rows[i].shares; }); R = 0; break; }
+      over.forEach(function (i) {
+        const r = rows[i];
+        const g = Math.max(0, r.cap * r.inv - prefPaid[i]);
+        partPaid[i] += g; R -= g; capped.push(i);
+      });
+      parts = parts.filter(function (i) { return over.indexOf(i) < 0; });
+    }
+    /* 所有参与者都封顶了还剩钱：按常见写法退回给普通股（含已转的）按股分；若根本没有普通股，就按全部股数分 */
+    let leftover = 0;
+    if (R > EPS) {
+      let pool = rows.filter(function (r) { return r.kind === 'c' || conv[r.i]; }).map(function (r) { return r.i; });
+      if (!pool.length) pool = rows.map(function (r) { return r.i; });
+      const S = pool.reduce(function (a, i) { return a + rows[i].shares; }, 0);
+      pool.forEach(function (i) { partPaid[i] += R * rows[i].shares / S; });
+      leftover = R; R = 0;
+    }
+    for (let i = 0; i < n; i++) pay[i] = prefPaid[i] + partPaid[i];
+    return { pay: pay, prefPaid: prefPaid, partPaid: partPaid, tiers: tiers, rest: rest, capped: capped, leftover: leftover };
+  }
+
+  /* ── 谁转谁不转：逐个改主意直到稳定 ── */
+  function decide(rows, E) {
+    const conv = new Array(rows.length).fill(false);
+    const prefs = rows.filter(function (r) { return r.kind === 'p'; });
+    let rounds = 0, stable = false;
+    for (; rounds < 60; rounds++) {
+      let changed = false;
+      prefs.forEach(function (r) {
+        const now = payout(rows, E, conv).pay[r.i];
+        conv[r.i] = !conv[r.i];
+        const alt = payout(rows, E, conv).pay[r.i];
+        if (alt > now + 1e-7 * Math.max(1, now)) changed = true; else conv[r.i] = !conv[r.i];
+      });
+      if (!changed) { stable = true; break; }
+    }
+    return { conv: conv, stable: stable, rounds: rounds };
+  }
+
+  function solve(rows, E) {
+    const d = decide(rows, E);
+    const p = payout(rows, E, d.conv);
+    p.conv = d.conv; p.stable = d.stable;
+    return p;
+  }
+
+  /* 某一行在卖价 E 下拿多少 */
+  function payOf(rows, E, idx) { return solve(rows, E).pay[idx]; }
+
+  /* 想拿到 target，卖价至少多少（二分；上限 MAXE） */
+  function needExit(rows, idx, target) {
+    if (payOf(rows, MAXE, idx) < target - 1e-9) return null;
+    let lo = 0, hi = MAXE;
+    if (payOf(rows, 0, idx) >= target) return 0;
+    for (let k = 0; k < 200 && hi - lo > 1e-10 * Math.max(1, hi); k++) {
+      const mid = (lo + hi) / 2;
+      if (payOf(rows, mid, idx) >= target - 1e-9) hi = mid; else lo = mid;
+    }
+    return hi;
+  }
+
+  /* 决策变化点：在 [0, Emax] 上扫描，再二分细化 */
+  function breakpoints(rows, Emax) {
+    const key = function (E) { return solve(rows, E).conv.join(','); };
+    const out = [];
+    const N = 240;
+    let pE = 0, pk = key(0);
+    for (let s = 1; s <= N; s++) {
+      const E = Emax * s / N, k = key(E);
+      if (k !== pk) {
+        let lo = pE, hi = E;
+        for (let t = 0; t < 50; t++) { const mid = (lo + hi) / 2; if (key(mid) === pk) lo = mid; else hi = mid; }
+        const before = pk.split(',').map(function (x) { return x === 'true'; });
+        const after = k.split(',').map(function (x) { return x === 'true'; });
+        const who = rows.filter(function (r) { return before[r.i] !== after[r.i]; }).map(function (r) { return { name: r.name, to: after[r.i] ? 'convert' : 'pref' }; });
+        out.push({ E: hi, who: who });
+      }
+      pE = E; pk = k;
+    }
+    return out;
+  }
+
+  /* 普通股开始拿到钱的卖价（二分；普通股合计对卖价不减） */
+  function commonStart(rows) {
+    const cs = rows.filter(function (r) { return r.kind === 'c'; }).map(function (r) { return r.i; });
+    if (!cs.length) return null;
+    const got = function (E) { const p = solve(rows, E).pay; return cs.reduce(function (a, i) { return a + p[i]; }, 0); };
+    if (got(MAXE) <= 0) return null;
+    let lo = 0, hi = MAXE;
+    if (got(0) > 0) return 0;
+    for (let k = 0; k < 200 && hi - lo > 1e-7 * Math.max(1, hi); k++) { const mid = (lo + hi) / 2; if (got(mid) > 1e-9) hi = mid; else lo = mid; }
+    return lo;
+  }
+
+  function curve(rows, Emax, steps) {
+    const pts = [];
+    for (let s = 0; s <= steps; s++) { const E = Emax * s / steps; pts.push({ E: E, pay: solve(rows, E).pay }); }
+    return pts;
+  }
+
+  function calculate(inp) {
+    const P = parse(inp);
+    const rows = P.rows, E = P.E;
+    const res = solve(rows, E);
+    const S = rows.reduce(function (a, r) { return a + r.shares; }, 0);
+    const fi = rows.findIndex(function (r) { return r.name === P.focus; });
+    const focus = rows[fi];
+    const totalPref = rows.reduce(function (a, r) { return a + (r.kind === 'p' ? r.pref : 0); }, 0);
+    /* 图的横轴要覆盖每轮的「转股临界价」：不参与的约在 优先款 × 总股数 ÷ 本轮股数，封顶的约在 封顶额 × 总股数 ÷ 本轮股数 */
+    let conv = 0;
+    rows.forEach(function (r) { if (r.kind !== 'p') return; const lim = r.part === 'cap' ? r.cap * r.inv : r.part === 'none' ? r.pref : 0; conv = Math.max(conv, lim * S / r.shares); });
+    const Emax = Math.min(MAXE, Math.max(E * 2, totalPref * 2, conv * 1.25, 1));
+    const people = rows.map(function (r) {
+      const got = res.pay[r.i];
+      return {
+        name: r.name, kind: r.kind, shares: r.shares, shareRatio: r.shares / S,
+        got: got, gotRatio: E > 0 ? got / E : 0, naive: E * r.shares / S,
+        pref: res.prefPaid[r.i], part: res.partPaid[r.i],
+        decision: r.kind === 'p' ? (res.conv[r.i] ? 'convert' : 'pref') : null,
+        capped: res.capped.indexOf(r.i) >= 0,
+        multiple: r.kind === 'p' && r.inv > 0 ? got / r.inv : null,
+        inv: r.kind === 'p' ? r.inv : null
+      };
+    });
+    /* 分钱单的步骤 */
+    const steps = [];
+    res.tiers.forEach(function (t) {
+      if (t.need <= 0) return;
+      steps.push({ kind: 'pref', text: '顺位 ' + t.rank + '：' + t.names.join('、') + ' 先拿优先款，应拿 ' + wan(t.need) + (t.full ? '，拿满' : '，只拿到 ' + wan(t.paid) + '（钱不够了）'), amount: t.paid });
+    });
+    const convNames = rows.filter(function (r) { return r.kind === 'p' && res.conv[r.i]; }).map(function (r) { return r.name; });
+    if (convNames.length) steps.unshift({ kind: 'conv', text: convNames.join('、') + ' 放弃优先款，转成普通股按股分更划算', amount: null });
+    const partNames = rows.filter(function (r) { return r.kind === 'c' || res.conv[r.i] || r.part !== 'none'; }).map(function (r) { return r.name; });
+    if (res.rest > EPS) steps.push({ kind: 'rest', text: '剩下 ' + wan(res.rest) + ' 按股分给：' + partNames.join('、') + (res.capped.length ? '（' + res.capped.map(function (i) { return rows[i].name; }).join('、') + ' 碰到封顶，多出的让给其余人）' : ''), amount: res.rest });
+    else steps.push({ kind: 'rest', text: '优先款分完，没有剩下的钱可以按股分', amount: 0 });
+
+    const fp = people[fi];
+    const bps = breakpoints(rows, Emax);
+    const cStart = commonStart(rows);
+    let need = null;
+    if (P.target != null) need = needExit(rows, fi, P.target);
+    const facts = [];
+    facts.push(focus.name + '持股 ' + pc(fp.shareRatio) + '，要是不管优先权、人人按股分，能拿 ' + wan(fp.naive) + '；实际拿 ' + wan(fp.got) + (Math.abs(fp.got - fp.naive) >= 0.005 ? '，' + (fp.got < fp.naive ? '少' : '多') + ' ' + wan(Math.abs(fp.got - fp.naive)) : '，一样'));
+    if (totalPref > 0) facts.push('优先款合计 ' + wan(totalPref) + '（各轮投资额 × 倍数）' + (cStart == null ? '' : '；卖价超过 ' + wan(cStart) + '，普通股才开始分到钱'));
+    rows.forEach(function (r) {
+      if (r.kind !== 'p') return;
+      const pp = people[r.i];
+      /* 按实际结果写（目检卖 1.2 亿时发现：A轮一分没拿到却写成「拿优先款再按股分」） */
+      let how;
+      if (pp.decision === 'convert') how = '转成普通股';
+      else if (pp.part > 0.005) how = '拿优先款再按股分' + (pp.capped ? '（碰到 ' + fmt(r.cap, 2) + ' 倍封顶）' : '');
+      else if (r.pref > 0 && pp.pref < r.pref - 0.005) how = pp.pref < 0.005 ? '排在后面，优先款一分没轮到' : '优先款只拿到一部分';
+      else how = '拿优先款';
+      facts.push(r.name + '：' + how + '，共 ' + wan(pp.got) + (r.inv > 0 && pp.got > 0.005 ? '，是投资额的 ' + fmt(pp.multiple, 2) + ' 倍' : ''));
+    });
+    if (bps.length) facts.push('卖价从 0 涨到 ' + wan(Emax) + '，' + bps.map(function (b) { return '到 ' + wan(b.E) + '时' + b.who.map(function (w) { return w.name + (w.to === 'convert' ? '改成转股' : '改回拿优先款'); }).join('、'); }).join('；'));
+    if (P.target != null) {
+      if (need == null) facts.push(focus.name + '想拿到 ' + wan(P.target) + '：卖价到上限也拿不到');
+      else facts.push(focus.name + '想拿到 ' + wan(P.target) + '：卖价至少 ' + wan(need) + (need <= E ? '，现在的卖价已经够了' : '，比现在多 ' + wan(need - E)));
+    }
+    if (!res.stable) facts.push('提示：几轮优先股在「转还是不转」之间来回换，没有稳定下来，上面的结果只是最后一圈的状态');
+    if (res.leftover > EPS) facts.push('参与的各轮都碰到封顶后还剩 ' + wan(res.leftover) + '，按普通股（含转股的）股数分');
+    const summary = E <= 0 ? '卖价是 0，谁都分不到钱'
+      : '卖 ' + wan(E) + '，' + focus.name + '拿到 ' + wan(fp.got) + '，占卖价 ' + pc(fp.gotRatio) + '，持股却是 ' + pc(fp.shareRatio);
+    return {
+      E: E, rows: rows, S: S, focus: focus.name, fi: fi, target: P.target, need: need,
+      people: people, steps: steps, conv: res.conv, stable: res.stable, rest: res.rest,
+      totalPref: totalPref, Emax: Emax, breakpoints: bps, commonStart: cStart,
+      facts: facts, summary: summary
+    };
+  }
+
+  /* ── 换个条件：每条只改一处，代回后关注的人能多拿 ── */
+  function suggestions(inp, r) {
+    const out = [];
+    const base = r.people[r.fi].got;
+    const clone = function () { return JSON.parse(JSON.stringify(inp)); };
+    if (r.target != null && r.need != null && r.need > r.E + 0.005) {
+      const q = clone(); q.exit = String(round(Math.ceil(r.need * 100) / 100, 2));
+      const rr = calculate(q);
+      out.push({ kind: 'exit', text: '卖价谈到 ' + wan(Number(q.exit)) + '：' + r.focus + '拿 ' + wan(rr.people[rr.fi].got) + '，够 ' + wan(r.target), apply: { exit: q.exit }, gain: rr.people[rr.fi].got - base, first: true });
+    }
+    const cand = [];
+    (inp.rows || []).forEach(function (row, i) {
+      if (row.kind !== 'p') return;
+      const tries = [];
+      if (row.part === 'full' || row.part === 'cap') tries.push(['part', 'none', '改成不参与（拿了优先款就不再按股分）']);
+      if (row.part === 'full') tries.push(['part', 'cap', '加个 3 倍封顶', { cap: '3' }]);
+      if (num(row.mult) > 1) tries.push(['mult', '1', '优先倍数从 ' + fmt(num(row.mult), 2) + ' 倍谈到 1 倍']);
+      tries.forEach(function (t) {
+        const q = clone(); q.rows[i][t[0]] = t[1]; if (t[3]) Object.assign(q.rows[i], t[3]);
+        let rr; try { rr = calculate(q); } catch (e) { return; }
+        const g = rr.people[rr.fi].got - base;
+        if (g > 0.005) {
+          const ap = {}; ap[t[0]] = t[1]; if (t[3]) Object.assign(ap, t[3]);
+          cand.push({ kind: t[0] + ':' + i, text: row.name + t[2] + '：' + r.focus + '拿 ' + wan(rr.people[rr.fi].got) + '，多 ' + wan(g), applyRow: { i: i, set: ap }, gain: g });
+        }
+      });
+    });
+    cand.sort(function (a, b) { return b.gain - a.gain; });
+    return out.concat(cand).slice(0, 4);
+  }
+
+  /* ── 导出 ── */
+  function csvCell(s) { s = String(s); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
+  function toCSV(r, stamp) {
+    const L = [['卖公司那天的分钱单', '导出于 ' + stamp].map(csvCell).join(',')];
+    L.push(['卖价（万元）', round(r.E, 2)].join(','));
+    L.push(['股东', '类型', '股数', '持股比例', '怎么拿', '优先款（万元）', '按股分（万元）', '合计（万元）', '占卖价', '人人按股分时（万元）'].map(csvCell).join(','));
+    r.people.forEach(function (p) {
+      L.push([p.name, p.kind === 'p' ? '优先股' : '普通股', p.shares, pc(p.shareRatio), p.decision === 'convert' ? '转股' : p.decision === 'pref' ? '拿优先款' : '按股分',
+        round(p.pref, 2), round(p.part, 2), round(p.got, 2), pc(p.gotRatio), round(p.naive, 2)].map(csvCell).join(','));
+    });
+    return L.join('\n') + '\n';
+  }
+  function toMD(r, stamp, sugs) {
+    const L = ['# 卖公司那天的分钱单', '', '导出于 ' + stamp + '。金额单位万元；按页面填的条款算，不是法律或投资意见。', '', '**' + r.summary + '**', '', '## 分钱顺序', ''];
+    r.steps.forEach(function (s, i) { L.push((i + 1) + '. ' + s.text); });
+    L.push('', '## 每人拿多少', '', '| 股东 | 持股 | 怎么拿 | 合计 | 占卖价 | 人人按股分时 |', '|---|---:|---|---:|---:|---:|');
+    r.people.forEach(function (p) { L.push('| ' + p.name + ' | ' + pc(p.shareRatio) + ' | ' + (p.decision === 'convert' ? '转股' : p.decision === 'pref' ? '拿优先款' : '按股分') + ' | ' + wan(p.got) + ' | ' + pc(p.gotRatio) + ' | ' + wan(p.naive) + ' |'); });
+    L.push('', '## 要点', '');
+    r.facts.forEach(function (f) { L.push('- ' + f); });
+    if (sugs && sugs.length) { L.push('', '## 换个条件', ''); sugs.forEach(function (s) { L.push('- ' + s.text); }); }
+    return L.join('\n') + '\n';
+  }
+
+  const API = { parse, payout, decide, solve, payOf, needExit, breakpoints, commonStart, curve, calculate, suggestions, toCSV, toMD, fmt, wan, pc, round, num, MAXE, MAXROWS, MAXPREF };
+  if (typeof module !== 'undefined' && module.exports) module.exports = API;
+  else root.AppCore = API;
+})(typeof window !== 'undefined' ? window : this);
+
+  </script>
+  <script>
+/* 卖公司那天的分钱单 · 界面层 */
+(function () {
+  'use strict';
+  const C = window.AppCore;
+  const KEY = 'exit-day-split:v1';
+  const DEFAULT = { exit: '20000', focus: '老甲', target: '3000', rows: [
+    { name: '老甲', kind: 'c', shares: '600' },
+    { name: '老乙', kind: 'c', shares: '300' },
+    { name: '期权池', kind: 'c', shares: '100' },
+    { name: '天使', kind: 'p', shares: '110', inv: '500', mult: '1', rank: '1', part: 'none', cap: '' },
+    { name: 'A轮', kind: 'p', shares: '250', inv: '2000', mult: '1', rank: '2', part: 'cap', cap: '3' },
+    { name: 'B轮', kind: 'p', shares: '300', inv: '8000', mult: '1.5', rank: '3', part: 'full', cap: '' }
+  ] };
+  const PRESETS = [
+    ['默认：三个创始人 + 三轮，卖 2 亿', DEFAULT],
+    ['卖得很好：卖 8 亿', Object.assign(JSON.parse(JSON.stringify(DEFAULT)), { exit: '80000' })],
+    ['卖得不好：卖 1.2 亿', Object.assign(JSON.parse(JSON.stringify(DEFAULT)), { exit: '12000' })],
+    ['只有一轮、1 倍不参与', { exit: '6000', focus: '创始人', target: '', rows: [
+      { name: '创始人', kind: 'c', shares: '800' },
+      { name: '投资人', kind: 'p', shares: '200', inv: '3000', mult: '1', rank: '1', part: 'none', cap: '' }] }]
+  ];
+  const COLORS = ['#2f5d50', '#5f8f7f', '#9cbfb2', '#c9893b', '#a8553a', '#6b4a8a', '#3d6f9e', '#b7a24a', '#7a7a70', '#c76f8f'];
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const copy = (o) => JSON.parse(JSON.stringify(o));
+  let state = copy(DEFAULT);
+  let last = null;
+  const RF = ['name', 'kind', 'shares', 'inv', 'mult', 'rank', 'part', 'cap'];
+
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* 隐私模式忽略 */ } }
+  function load() {
+    try {
+      const o = JSON.parse(localStorage.getItem(KEY) || 'null');
+      if (!o || typeof o !== 'object' || Array.isArray(o) || !Array.isArray(o.rows) || !o.rows.length || o.rows.length > C.MAXROWS) return null;
+      const s = (v, n) => String(v == null ? '' : v).slice(0, n);
+      return { exit: s(o.exit, 24), focus: s(o.focus, 16), target: s(o.target, 24), rows: o.rows.map((r) => {
+        r = r && typeof r === 'object' ? r : {};
+        return { name: s(r.name, 16), kind: r.kind === 'p' ? 'p' : 'c', shares: s(r.shares, 20), inv: s(r.inv, 20), mult: s(r.mult, 10), rank: s(r.rank, 4),
+          part: ['none', 'full', 'cap'].indexOf(r.part) >= 0 ? r.part : 'none', cap: s(r.cap, 10) };
+      }) };
+    } catch (e) { return null; }
+  }
+
+  /* ── 输入区 ── */
+  function rowHTML(r, i) {
+    const p = r.kind === 'p';
+    const f = (k, label, extra, cls) => '<div class="' + (cls || '') + '"><label for="r' + i + '.' + k + '">' + label + '</label><input id="r' + i + '.' + k + '" data-i="' + i + '" data-k="' + k + '" value="' + esc(r[k] == null ? '' : r[k]) + '"' + (extra || '') + '></div>';
+    return '<div class="row ' + (p ? 'p' : 'c') + (p && r.part === 'cap' ? ' cap' : '') + '" data-i="' + i + '">' +
+      f('name', p ? '这一轮叫' : '股东', ' maxlength="16"') +
+      '<div><label for="r' + i + '.kind">类型</label><select id="r' + i + '.kind" data-i="' + i + '" data-k="kind"><option value="c"' + (p ? '' : ' selected') + '>普通股</option><option value="p"' + (p ? ' selected' : '') + '>优先股</option></select></div>' +
+      f('shares', '股数', ' inputmode="decimal"') +
+      f('inv', '投了多少（万元）', ' inputmode="decimal"', 'p-only') +
+      f('mult', '优先倍数', ' inputmode="decimal"', 'p-only') +
+      f('rank', '顺位', ' inputmode="numeric"', 'p-only') +
+      '<div class="p-only"><label for="r' + i + '.part">拿完优先款还分不分</label><select id="r' + i + '.part" data-i="' + i + '" data-k="part">' +
+        [['none', '不参与'], ['full', '参与'], ['cap', '参与，封顶']].map((o) => '<option value="' + o[0] + '"' + (r.part === o[0] ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select></div>' +
+      f('cap', '封顶几倍', ' inputmode="decimal"', 'p-only cap-f') +
+      '<div><button class="x" data-del="' + i + '" title="删掉这一行">删</button></div></div>';
+  }
+  function drawRows() {
+    $('rows').innerHTML = state.rows.map(rowHTML).join('');
+    fillFocus();
+  }
+  function fillFocus() {
+    const sel = $('focus');
+    const names = state.rows.map((r) => String(r.name || '').trim()).filter(Boolean);
+    sel.innerHTML = names.map((n) => '<option' + (n === state.focus ? ' selected' : '') + '>' + esc(n) + '</option>').join('');
+    if (names.indexOf(state.focus) < 0 && names.length) { state.focus = names[0]; sel.value = names[0]; }
+  }
+  function fillTop() { $('exit').value = state.exit; $('target').value = state.target; fillFocus(); }
+  function fillAll() { drawRows(); fillTop(); }
+
+  /* ── 结果 ── */
+  function chart(r) {
+    const W = 900, H = 340, L = 64, R = 14, T = 12, B = 34, pw = W - L - R, ph = H - T - B;
+    const pts = C.curve(r.rows, r.Emax, 120);
+    const x = (E) => L + pw * E / r.Emax, y = (v) => T + ph - ph * v / r.Emax;
+    let s = '';
+    for (let k = 0; k <= 4; k++) { const v = r.Emax * k / 4; s += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(v) + '" y2="' + y(v) + '" stroke="#e4e3dc"/><text x="' + (L - 6) + '" y="' + (y(v) + 4) + '" font-size="11" text-anchor="end" fill="#7f8077">' + esc(C.wan(v).replace(' 元', '')) + '</text>'; }
+    for (let k = 0; k <= 4; k++) { const v = r.Emax * k / 4; s += '<text x="' + x(v) + '" y="' + (H - 12) + '" font-size="11" text-anchor="middle" fill="#7f8077">' + esc(C.wan(v).replace(' 元', '')) + '</text>'; }
+    const base = pts.map(() => 0);
+    r.rows.forEach((row, i) => {
+      const top = pts.map((p, j) => base[j] + p.pay[i]);
+      const d = 'M' + pts.map((p, j) => x(p.E).toFixed(1) + ',' + y(top[j]).toFixed(1)).join('L') + 'L' + pts.slice().reverse().map((p, jj) => { const j = pts.length - 1 - jj; return x(p.E).toFixed(1) + ',' + y(base[j]).toFixed(1); }).join('L') + 'Z';
+      s += '<path d="' + d + '" fill="' + COLORS[i % COLORS.length] + '" opacity="' + (i === r.fi ? 1 : 0.82) + '"/>';
+      pts.forEach((p, j) => { base[j] = top[j]; });
+    });
+    r.breakpoints.forEach((b) => { s += '<line x1="' + x(b.E) + '" x2="' + x(b.E) + '" y1="' + T + '" y2="' + (T + ph) + '" stroke="#22231f" stroke-dasharray="4 4" opacity=".55"/>'; });
+    if (r.E <= r.Emax) s += '<line x1="' + x(r.E) + '" x2="' + x(r.E) + '" y1="' + T + '" y2="' + (T + ph) + '" stroke="#22231f" stroke-width="2"/>';
+    $('chart').innerHTML = s;
+    $('legend').innerHTML = r.rows.map((row, i) => '<span><i style="background:' + COLORS[i % COLORS.length] + '"></i>' + esc(row.name) + '</span>').join('');
+  }
+  function howTxt(p) { return p.decision === 'convert' ? '转成普通股' : p.decision === 'pref' ? (p.part > 0.005 ? '优先款 + 按股分' + (p.capped ? '（封顶）' : '') : '只拿优先款') : '按股分'; }
+  function render(r, sugs) {
+    $('slipMeta').textContent = '卖价 ' + C.wan(r.E) + ' · ' + r.rows.length + ' 行 · 金额单位万元';
+    $('summary').textContent = r.summary;
+    $('steps').innerHTML = r.steps.map((s) => '<li>' + esc(s.text) + '</li>').join('');
+    let t = '<thead><tr><th>股东</th><th>怎么拿</th><th>持股</th><th>到手</th><th>占卖价</th><th>按股分本该</th><th>差</th></tr></thead><tbody>';
+    r.people.forEach((p, i) => {
+      const d = p.got - p.naive;
+      t += '<tr class="' + (i === r.fi ? 'focus' : '') + '"><td data-l="股东">' + esc(p.name) + '</td><td data-l="怎么拿">' + howTxt(p) + '</td><td data-l="持股">' + C.pc(p.shareRatio) + '</td><td data-l="到手">' + esc(C.wan(p.got)) + '</td><td data-l="占卖价">' + C.pc(p.gotRatio) + '</td><td data-l="按股分本该">' + esc(C.wan(p.naive)) + '</td><td data-l="差" class="' + (d < -0.005 ? 'less' : d > 0.005 ? 'more' : '') + '">' + (Math.abs(d) < 0.005 ? '—' : (d > 0 ? '+' : '−') + esc(C.wan(Math.abs(d)))) + '</td></tr>';
+    });
+    const tot = r.people.reduce((a, p) => a + p.got, 0);
+    t += '</tbody><tfoot><tr><td data-l="合计">合计</td><td data-l=""></td><td data-l="持股">100%</td><td data-l="到手">' + esc(C.wan(tot)) + '</td><td data-l="占卖价">' + (r.E > 0 ? C.pc(tot / r.E) : '0%') + '</td><td data-l=""></td><td data-l=""></td></tr></tfoot>';
+    $('tbl').innerHTML = t;
+    $('facts').innerHTML = r.facts.map((f) => '<li>' + esc(f) + '</li>').join('');
+    chart(r);
+    const ul = $('sugs'); ul.innerHTML = '';
+    $('sugCard').style.display = sugs.length ? '' : 'none';
+    sugs.forEach((sc) => {
+      const li = document.createElement('li');
+      li.innerHTML = '<span></span><button class="ghost" data-kind="' + esc(sc.kind) + '">照这个改</button>';
+      li.querySelector('span').textContent = sc.text;
+      li.querySelector('button').addEventListener('click', () => {
+        if (sc.apply) Object.assign(state, sc.apply);
+        if (sc.applyRow) Object.assign(state.rows[sc.applyRow.i], sc.applyRow.set);
+        fillAll(); run();
+      });
+      ul.appendChild(li);
+    });
+  }
+  function clearBad() { [].forEach.call(document.querySelectorAll('.bad'), (e) => e.classList.remove('bad')); }
+  function run() {
+    clearBad();
+    try {
+      const r = C.calculate(state);
+      const sg = C.suggestions(state, r);
+      last = { r, sg };
+      $('error').style.display = 'none'; $('out').style.display = '';
+      render(r, sg);
+    } catch (e) {
+      last = null;
+      if (e.field) { const el = $(e.field); if (el) el.classList.add('bad'); }
+      $('error').textContent = '算不了：' + e.message; $('error').style.display = 'block';
+      $('out').style.display = 'none';
+    }
+    save();
+  }
+
+  /* ── 导出 ── */
+  function stamp() { const d = new Date(), z = (n) => String(n).padStart(2, '0'); return d.getFullYear() + '-' + z(d.getMonth() + 1) + '-' + z(d.getDate()) + ' ' + z(d.getHours()) + ':' + z(d.getMinutes()); }
+  function download(name, blob) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); }
+  function wrap(g, t, w) {
+    const NOHEAD = '，。、；：！？）」』%';
+    const out = []; let line = '';
+    const toks = String(t).match(/[0-9][0-9,.%]*|[A-Za-z]+|[\s\S]/g) || [];
+    for (const ch of toks) {
+      if (g.measureText(line + ch).width > w && line) {
+        if (NOHEAD.indexOf(ch[0]) >= 0) { const l = line.slice(-1); out.push(line.slice(0, -1)); line = l + ch; }
+        else if ('（「『'.indexOf(line.slice(-1)) >= 0) { const l = line.slice(-1); out.push(line.slice(0, -1)); line = l + ch; }
+        else { out.push(line); line = ch.replace(/^\s+/, ''); }
+      } else line += ch;
+    }
+    if (line) out.push(line); return out;
+  }
+  function clip(g, t, w) { t = String(t); if (g.measureText(t).width <= w) return t; while (t.length > 1 && g.measureText(t + '…').width > w) t = t.slice(0, -1); return t + '…'; }
+  function drawPNG(r, sugs) {
+    const W = 1080, H = 1350;
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+    const g = cv.getContext('2d'); const FF = '"PingFang SC","Microsoft YaHei",sans-serif';
+    g.fillStyle = '#ecebe6'; g.fillRect(0, 0, W, H); g.fillStyle = '#fffdf6'; g.fillRect(50, 50, 980, 1250);
+    g.strokeStyle = '#d9d2bd'; g.lineWidth = 2; g.strokeRect(50, 50, 980, 1250);
+    g.fillStyle = '#6f6a58'; g.font = '30px ' + FF; g.fillText('卖公司那天的分钱单', 100, 116);
+    g.font = '21px ' + FF; g.fillText(clip(g, '卖价 ' + C.wan(r.E) + ' · ' + r.rows.length + ' 行股东 · 金额单位万元', 880), 100, 154);
+    g.fillStyle = '#2f5d50';
+    let fs = 40, sl;
+    for (; fs >= 24; fs -= 2) { g.font = 'bold ' + fs + 'px ' + FF; sl = wrap(g, r.summary, 880); if (sl.length <= 3) break; }
+    let y = 176 + fs;
+    sl.slice(0, 4).forEach((l) => { g.fillText(l, 100, y); y += Math.round(fs * 1.3); });
+    y += 6;
+    g.strokeStyle = '#cfc7ad'; g.setLineDash([6, 6]); g.beginPath(); g.moveTo(100, y); g.lineTo(980, y); g.stroke(); g.setLineDash([]);
+    y += 34;
+    g.font = '21px ' + FF; g.fillStyle = '#3b3c36';
+    r.steps.forEach((s, i) => {
+      const ls = wrap(g, (i + 1) + '. ' + s.text, 880);
+      ls.slice(0, 3).forEach((l) => { g.fillText(l, 100, y); y += 30; });
+    });
+    y += 14;
+    /* 每人到手条（长度 = 占卖价） */
+    const rowH = Math.min(46, Math.max(30, 420 / r.people.length));
+    r.people.forEach((p, i) => {
+      g.fillStyle = i === r.fi ? '#2f5d50' : '#3b3c36'; g.font = (i === r.fi ? 'bold ' : '') + '22px ' + FF;
+      /* 名字列给足宽度（极限图目检：170px 时 13 字长名全被截成同一个前缀，分不清谁是谁） */
+      g.fillText(clip(g, p.name, 300), 100, y + rowH * 0.62);
+      const BX = 410, BW = 340;
+      g.fillStyle = '#ece8da'; g.fillRect(BX, y + 6, BW, rowH - 14);
+      g.fillStyle = COLORS[i % COLORS.length]; g.fillRect(BX, y + 6, Math.max(r.E > 0 && p.got > 0 ? 2 : 0, BW * p.gotRatio), rowH - 14);
+      g.strokeStyle = '#22231f'; g.lineWidth = 2; const nx = BX + BW * p.shareRatio; g.beginPath(); g.moveTo(nx, y + 2); g.lineTo(nx, y + rowH - 4); g.stroke();
+      g.fillStyle = '#22231f'; g.font = 'bold 21px ' + FF; g.textAlign = 'right';
+      g.fillText(clip(g, C.wan(p.got), 210), 980, y + rowH * 0.62); g.textAlign = 'left';
+      y += rowH;
+    });
+    g.fillStyle = '#7f8077'; g.font = '17px ' + FF; g.fillText('条长 = 占卖价；黑竖线 = 持股比例（人人按股分时该在的位置）', 100, y + 20);
+    y += 56;
+    g.fillStyle = '#22231f'; g.font = '21px ' + FF;
+    const items = r.facts.slice(0, 1).concat(r.facts.filter((f) => /想拿到|改成转股|改回/.test(f))).concat(sugs.slice(0, 2).map((s) => '→ ' + s.text));
+    for (const t of items) {
+      const ls = wrap(g, (t.startsWith('→') ? '' : '· ') + t, 860);
+      if (y + ls.length * 31 > 1232) break;
+      ls.forEach((l) => { g.fillText(l, 100, y); y += 31; });
+      y += 6;
+    }
+    g.fillStyle = '#7f8077'; g.font = '18px ' + FF;
+    g.fillText('按页面填的条款算的简化模型，不是法律或投资意见；真实分配以合同为准。', 100, 1264);
+    return cv;
+  }
+  function backup() {
+    const r = last.r;
+    return { app: '卖公司那天的分钱单', version: 1, savedAt: stamp(), input: copy(state),
+      result: { summary: r.summary, exit: r.E, focus: r.focus, need: r.need, totalPref: r.totalPref, commonStart: r.commonStart,
+        breakpoints: r.breakpoints, people: r.people.map((p) => ({ name: p.name, got: C.round(p.got, 2), shareRatio: p.shareRatio, gotRatio: p.gotRatio, decision: p.decision })), facts: r.facts } };
+  }
+
+  function init() {
+    $('rows').addEventListener('input', (e) => {
+      const el = e.target; if (!el.dataset || el.dataset.k == null) return;
+      const i = +el.dataset.i, k = el.dataset.k;
+      const oldName = state.rows[i].name;
+      state.rows[i][k] = el.value;
+      /* 改名时「看谁」跟着走；但如果还有别的行叫原来的名字（比如临时改成重名再改回），就不跟 */
+      if (k === 'name') { if (state.focus === oldName && !state.rows.some((r, j) => j !== i && String(r.name).trim() === oldName)) state.focus = el.value.trim(); fillFocus(); }
+      run();
+    });
+    $('rows').addEventListener('change', (e) => {
+      const el = e.target; if (el.tagName !== 'SELECT') return;
+      const i = +el.dataset.i, k = el.dataset.k;
+      state.rows[i][k] = el.value;
+      if (k === 'kind' && el.value === 'p') { const r = state.rows[i]; if (!r.inv) r.inv = '1000'; if (!r.mult) r.mult = '1'; if (!r.rank) r.rank = '1'; if (!r.part) r.part = 'none'; }
+      if (k === 'part' && el.value === 'cap' && !state.rows[i].cap) state.rows[i].cap = '3';
+      drawRows(); run();
+    });
+    $('rows').addEventListener('click', (e) => {
+      const b = e.target.closest('button[data-del]'); if (!b) return;
+      if (state.rows.length <= 1) return;
+      state.rows.splice(+b.dataset.del, 1); drawRows(); run();
+    });
+    const uniq = (base) => { let n = base, k = 2; const has = (x) => state.rows.some((r) => r.name === x); while (has(n)) n = base + k++; return n; };
+    $('addC').addEventListener('click', () => { if (state.rows.length >= C.MAXROWS) return; state.rows.push({ name: uniq('新股东'), kind: 'c', shares: '100' }); drawRows(); run(); });
+    $('addP').addEventListener('click', () => { if (state.rows.length >= C.MAXROWS) return; state.rows.push({ name: uniq('新一轮'), kind: 'p', shares: '100', inv: '1000', mult: '1', rank: '1', part: 'none', cap: '' }); drawRows(); run(); });
+    $('exit').addEventListener('input', () => { state.exit = $('exit').value; run(); });
+    $('target').addEventListener('input', () => { state.target = $('target').value; run(); });
+    $('focus').addEventListener('change', () => { state.focus = $('focus').value; run(); });
+    const box = $('presets');
+    PRESETS.forEach((p) => {
+      const b = document.createElement('button'); b.className = 'ghost'; b.textContent = p[0];
+      b.addEventListener('click', () => { state = copy(p[1]); fillAll(); run(); });
+      box.appendChild(b);
+    });
+    $('reset').addEventListener('click', () => { state = copy(DEFAULT); fillAll(); run(); });
+    $('dlCSV').addEventListener('click', () => { if (last) download('卖公司那天的分钱单.csv', new Blob(['\ufeff' + C.toCSV(last.r, stamp())], { type: 'text/csv;charset=utf-8' })); });
+    $('dlMD').addEventListener('click', () => { if (last) download('卖公司那天的分钱单.md', new Blob([C.toMD(last.r, stamp(), last.sg)], { type: 'text/markdown;charset=utf-8' })); });
+    $('dlJSON').addEventListener('click', () => { if (last) download('卖公司那天的分钱单-备份.json', new Blob([JSON.stringify(backup(), null, 2)], { type: 'application/json' })); });
+    $('dlPNG').addEventListener('click', () => { if (last) drawPNG(last.r, last.sg).toBlob((b) => download('卖公司那天的分钱单-1080x1350.png', b), 'image/png'); });
+    state = load() || copy(DEFAULT);
+    fillAll(); run();
+    window.__ex = { last: () => last, state: () => state, presets: PRESETS };
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
+
+  </script>
+</body>
+</html>
